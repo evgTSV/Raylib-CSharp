@@ -1,6 +1,7 @@
 <Project>
     <PropertyGroup>
         <RlVersion>5.5</RlVersion>
+        <IsRaspberryPi Condition="'$(RuntimeIdentifier)' == 'linux-arm64' And Exists('/etc/rpi-issue')">true</IsRaspberryPi>
     </PropertyGroup>
 
     <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
@@ -41,7 +42,16 @@
         <ConfigureArgs Include="-D CUSTOMIZE_BUILD=ON" />
         <ConfigureArgs Include="-D SUPPORT_GIF_RECORDING=OFF" />
         <ConfigureArgs Include="-D SUPPORT_SCREEN_CAPTURE=OFF" />
-        <ConfigureArgs Include="-D GRAPHICS=GRAPHICS_API_OPENGL_43" />
+        <ConfigureArgs Include="-D PLATFORM=PLATFORM_DRM" 
+                       Condition="'$(IsRaspberryPi)' == 'true'" />
+        <ConfigureArgs Include="-D GRAPHICS=GRAPHICS_API_OPENGL_ES2" 
+                       Condition="'$(IsRaspberryPi)' == 'true'" />
+        <ConfigureArgs Include="-D CMAKE_C_FLAGS=-march=armv8-a" 
+                       Condition="'$(IsRaspberryPi)' == 'true'" />
+        <ConfigureArgs Include="-D PLATFORM=PLATFORM_DESKTOP" 
+                       Condition="'$(IsRaspberryPi)' != 'true' And $([MSBuild]::IsOSPlatform('Linux'))" />
+        <ConfigureArgs Include="-D GRAPHICS=GRAPHICS_API_OPENGL_43" 
+                       Condition="'$(IsRaspberryPi)' != 'true' And $([MSBuild]::IsOSPlatform('Linux'))" />
     </ItemGroup>
 
     <!-- Build Raylib -->
@@ -54,6 +64,12 @@
     <ItemGroup>
         <Content Include="$(IntermediateOutputPath)native/raylib/$(RlName)">
             <Link>%(Filename)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+
+        <Content Include="$(IntermediateOutputPath)native/raylib/$(RlName)"
+                 Condition="'$(IsRaspberryPi)' == 'true'">
+            <Link>runtimes/linux-arm64/native/%(Filename)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
